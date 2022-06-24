@@ -1,17 +1,21 @@
-import {
-  Notice,
-  Plugin,
-  Editor,
-  MarkdownView
-} from "obsidian";
+import { Notice, Plugin, Editor, MarkdownView } from "obsidian";
 
 interface ObsidianRichLinksPluginSettings {
-
 }
 
-const DEFAULT_SETTINGS: ObsidianRichLinksPluginSettings = {
+interface crestifyJSON {
+  meta: {title?:string, description?:string},
+  links: {
+    rel: string;
+    type: "text/html" | "image/jpeg" | "image/png" | "image";
+    media?: { height: number; width: number };
+    href: string;
+  }[];
+  rel: string[];
+  html: string[];
+}
 
-};
+const DEFAULT_SETTINGS: ObsidianRichLinksPluginSettings = {};
 
 export default class ObsidianRichLinksPlugin extends Plugin {
   settings: ObsidianRichLinksPlugin;
@@ -61,20 +65,22 @@ export default class ObsidianRichLinksPlugin extends Plugin {
       const url = selectedText;
       ajaxPromise({
         url: `http://iframely.server.crestify.com/iframely?url=${url}`,
-      }).then((res) => {
-		  const data = JSON.parse(res);
-		  const imageLink = data.links[0].href || '';
+      }).then((res:string) => {
+        const data:crestifyJSON = JSON.parse(res);
+        const imageLink = data.links.find( link => link.type.includes('image'))
 
         editor.replaceSelection(`
 <div class="rich-link-card-container"><a class="rich-link-card" href="${url}" target="_blank">
 	<div class="rich-link-image-container">
-		<div class="rich-link-image" style="background-image: url('${imageLink}')">
+		<div class="rich-link-image" style="background-image: url('${imageLink.href}')">
 	</div>
 	</div>
 	<div class="rich-link-card-text">
-		<h1 class="rich-link-card-title">${(data.meta.title || "").replace(/\s{3,}/g, ' ').trim()}</h1>
+		<h1 class="rich-link-card-title">${(data.meta.title || "")
+      .replace(/\s{3,}/g, " ")
+      .trim()}</h1>
 		<p class="rich-link-card-description">
-		${(data.meta.description || "").replace(/\s{3,}/g, ' ').trim()}
+		${(data.meta.description || "").replace(/\s{3,}/g, " ").trim()}
 		</p>
 		<p class="rich-link-href">
 		${url}
